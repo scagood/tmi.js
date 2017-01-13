@@ -1,0 +1,35 @@
+{
+    "log": false,
+    "_comment_log": "Will the program write all messages to console",
+    "proxy": false,
+    "_comment_proxy": "Can people get a direct proxy via ws:/site.site/~proxy",
+    "relay": false,
+    "_comment_relay": "Can people get a readonly relay via ws:/site.site/~relay",
+    "host": "scagood.co.uk",
+    "_comment_host": "The host to report as",
+    "port": 8004,
+    "_comment_port": "Port to listen on",
+    "bots": {
+        "scabot": {
+            "name": "<- your bot's name ->",
+            "host": "<- your bot's host name ->",
+            "auth": "<- Your bot's oauth token ->",
+            
+            "cmds": [
+                "<- Allowed command #1 ->",
+                "<- Allowed command #2 ->",
+            ],
+            "_comment_cmds": "An array of commands the users are allowed",
+            
+            "users": true,
+            "users": [
+                "<- Allowed username #1 ->",
+                "<- Allowed username #2 ->"
+            ],
+            "_comment_users": [
+                "'true' means anyone can use it",
+                "an array means the given users can use the bot's name"
+            ]
+        }
+    }
+}
