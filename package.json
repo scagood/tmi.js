@@ -1,0 +1,25 @@
+{
+  "name": "tmi.relay.js",
+  "version": "1.0.0",
+  "description": "",
+  "main": "null",
+  "dependencies": {
+    "request": "^2.79.0",
+    "ws": "^1.1.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "cls & node tmi.relay.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scagood/tmi.js.git"
+  },
+  "author": "scagood <sca@sacgood.co.uk> (scagood.co.uk)",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/scagood/tmi.js/issues"
+  },
+  "homepage": "https://github.com/scagood/tmi.js#readme"
+}
