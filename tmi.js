@@ -2,14 +2,14 @@ var twitchIRC = function (nick, auth, options) {
     "use strict";
     auth = auth[5] === ":" ? auth : "oauth:" + auth;
     options = options || [];
-    
+
     var log = options.debug || false,
         relay = options.relay || false,
         channels = options.channels || [],
         triggers = {},
         ws;
     var that = this;
-    
+
     // Can Websockets work
     if (!("WebSocket" in window)) {
         // The browser doesn't support WebSocket
@@ -45,7 +45,7 @@ var twitchIRC = function (nick, auth, options) {
         n = n + '';
         return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
     }
-    
+
     // Events
     function on (event, callback) {
         if (!triggers[event]) {
@@ -61,13 +61,13 @@ var twitchIRC = function (nick, auth, options) {
             }
         }
     }
-    
+
     if (typeof relay === "string") {
         ws = new WebSocket(relay);
     } else {
         ws = new WebSocket("ws://irc-ws.chat.twitch.tv/");
     }
-    
+
     function twLog(level, param1) {
         if (log == level) {
             console.log.apply(null, [].slice.call(arguments, 1));
@@ -77,62 +77,62 @@ var twitchIRC = function (nick, auth, options) {
         ws.send(raw);
         twLog(2, raw)
     }
-    
+
     // Main join, part & messaging functions
     function join (channel) {
-        // Remove trailing spaces 
+        // Remove trailing spaces
         channel = channel.trim();
-        
+
         // Add the '#' if in infront of channel
         if (channel.substr(0, 1) !== "#") {
             channel = "#" + channel;
         }
-        
+
         // Send the command
         wsSend("JOIN " + channel);
     }
     function part (channel) {
-        // Remove trailing spaces 
+        // Remove trailing spaces
         channel = channel.trim();
-        
+
         // Add the '#' if in infront of channel
         if (channel.substr(0, 1) !== "#") {
             channel = "#" + channel;
         }
-        
+
         // Send the command
         wsSend("PART " + channel);
     }
     function send (channel, message) {
-        // Remove trailing spaces 
+        // Remove trailing spaces
         channel = channel.trim();
-        
+
         // Add the '#' if in infront of channel
         if (channel.substr(0, 1) !== "#") {
             channel = "#" + channel;
         }
-        
+
         // Send the command
         wsSend("PRIVMSG " + channel + " :" +message);
     }
     function whisperTo (user, message) {
-        // Remove trailing spaces 
+        // Remove trailing spaces
         user = user.trim();
-        
+
         // Send the command
         wsSend("PRIVMSG #jtv :/w " + user + " " + message);
     }
-    
+
     // On connection log in
     ws.onopen = function () {
         var i;
         // Web Socket is connected, send data using send()
         wsSend('PASS ' + auth);
         wsSend('NICK ' + nick);
-        
-        // Request all capibilities 
+
+        // Request all capibilities
         wsSend('CAP LS');
-        
+
         // Join initial channels
         for (i in channels) {
             // Check the channel is not lost
@@ -156,10 +156,10 @@ var twitchIRC = function (nick, auth, options) {
             if ({}.hasOwnProperty.call(messages, i)) {
                 // Emit the "raw" event
                 fire("raw", messages[i].trim());
-                
+
                 // Split the line down into tags, host, command, channel & message
                 array = /(?:@([^ ]*) )?:([a-zA-z0-9!@_.]+) ([A-Z0-9]+) ([^ \r\n]+)(?:(?: :)?(.*))?/g.exec(messages[i].trim());
-                
+
                 // If the regex worked
                 if (array !== null) {
                     // Construct the 'constants' in a message
@@ -180,33 +180,33 @@ var twitchIRC = function (nick, auth, options) {
                             message.message = array[5];
                         }
                     }
-                    
+
                     // If the message has tags
                     if (typeof array[1] !== "undefined") {
                         // Create a place to store the tags
                         tags = {};
                         // Split the tags into individual tags
                         array[1] = array[1].split(";");
-                        
+
                         // Go through every tag
                         for (i in array[1]) {
                             // Check that the tag is there
                             if (array[1].hasOwnProperty(i)) {
                                 // Open the tag's key and value
                                 array[1][i] = array[1][i].split("=");
-                                
+
                                 // Assign the value to the correct key and add to tags array
                                 tags[array[1][i][0]] = array[1][i][1];
                             }
                         }
-                        
+
                         // Add tags to the message array
                         message.tags = tags;
-                        
+
                         if (typeof tags.badges !== "undefined" && tags.badges !== "") {
                             tags.badgesArray = tags.badges.split("/").join("-").split(",");
                         }
-                        
+
                         // If emotes were used
                         if (typeof tags.emotes !== "undefined" && tags.emotes != "") {
                             // Parse emotes
@@ -219,12 +219,12 @@ var twitchIRC = function (nick, auth, options) {
                                 if (emotes.hasOwnProperty(i)) {
                                     emote = emotes[i].split(":");
                                     emote[1] = emote[1].split(",");
-                                    
+
                                     for (i in emote[1]) {
                                         if (emote[1].hasOwnProperty(i)) {
                                             emote[1][i] = emote[1][i].split("-");
-                                            
-                                            emote[1][i][0] = parseInt(emote[1][i][0], 10); 
+
+                                            emote[1][i][0] = parseInt(emote[1][i][0], 10);
                                             emote[1][i][1] = parseInt(emote[1][i][1], 10);
                                             e++;
                                         }
@@ -240,9 +240,9 @@ var twitchIRC = function (nick, auth, options) {
                             message.tags.emotesArray["count"] = e;
                         }
                     }
-                    
+
                     message.time = new Date().getTime();
-                    
+
                     // Pull usernames from host
                     if (/(?:(.+)!\1@\1\.)tmi.twitch.tv/.test(message.host)) {
                         message.user = /(?:(.+)!\1@\1\.)tmi.twitch.tv/.exec(message.host)[1];
@@ -260,9 +260,9 @@ var twitchIRC = function (nick, auth, options) {
                     } else {
                         message = messages[i];
                     }
-                    
+
                 }
-                
+
                 // Emit the "join" event
                 if (message.command === "JOIN") {
                     delete message.action;
@@ -285,7 +285,7 @@ var twitchIRC = function (nick, auth, options) {
                     message.command += " * " + message.message.split(":")[0].trim(" ");
                     message.message = message.message.split(":")[1];
                     message.capibilities = message.message.split(" ");
-                    
+
                     if (message.command === "CAP * LS") {
                         wsSend('CAP REQ :' + message.message);
                         twLog(1, "Available Capabilities:", message.message);
@@ -300,7 +300,7 @@ var twitchIRC = function (nick, auth, options) {
                     delete message.action;
                     message.user = message.message.trim().split(" ")[1];
                     message.message = message.message.trim().split(" ")[0];
-                    
+
                     twLog(1, "Mode:", message.channel, message.user, message.message);
                     fire("mode", message.channel, message.user, message.message);
                 }
@@ -375,7 +375,7 @@ var twitchIRC = function (nick, auth, options) {
                     twLog(1, "Welcome:", message.command, ":"+message.message);
                     fire("welcome", message.command, message.message);
                 }
-                
+
                 twLog(2, message);
                 // Emits the 'all' event
                 fire("all", message);
@@ -385,16 +385,19 @@ var twitchIRC = function (nick, auth, options) {
     ws.onclose = function () {
         fire("close");
     };
-    
+
     this.username = nick;
     this.connected = [];
-    
+
     this.sendRaw = wsSend;
     this.send = send;
     this.whisper = whisperTo;
-    
+
     this.join = join;
     this.part = part;
-    
+
     this.on = on;
+    this.close = () =>{
+        ws.close();
+    };
 };
