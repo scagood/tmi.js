@@ -1,6 +1,14 @@
 # Basic twitch chat client interface
 A quick little api for TwitchTV's websockets in browser
 
+In order to use this you have to:
+1. Clone this repo (or just download tmi.js)
+2. Add the following to your html:
+ ```html
+ <script src="/path/to/tmi.js"></script>
+```
+3. Create your magical js
+
 ## Options
 ```javascript
 var options = {
@@ -237,10 +245,9 @@ irc.on("close");
 ```javascript
 // Declare your username, auth_token and options
 var username = 'scagood';
-var oauth = 'a5yvm0ga6ph6h2o502j53c8c530pfi'; // This is totally valid :')
+var oauth = 'abcdefghijklmnopqrstuvwxyz1234'; // This is totally valid :')
 var bot = new twitchIRC(username, oauth, {
   "channels": ["#scagood"], // Immediately connect to #scagood
-  "whispers": true  // Whispers are recieveable and sendable
 });
 
 // Recieve messages
@@ -250,7 +257,7 @@ bot.on("message", function (channel, user, message) {
   // Check to see if the first word it 'hello'
   if (words[0] === "hello") {
     // Say hi to the person who said hello
-    bot.msg(channel, "Hello " + user + "!");
+    bot.send(channel, "Hello " + user + "!");
   }
 });
 ```
