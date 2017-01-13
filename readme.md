@@ -1,7 +1,7 @@
 # tmi.js
 
 ## Client
-[Client documentation (server.ms)](./client.md)
+[Client documentation (client.md)](./client.md)
 
 ## Server
-[Server documentation (server.ms)](./server.md)
+[Server documentation (server.md)](./server.md)
