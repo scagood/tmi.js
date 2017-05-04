@@ -359,6 +359,12 @@ function connRaw (client) {
 }
 function connClass (client) {
     var url = client.upgradeReq.url.slice(1);
+    var isBotName;
+    
+    // Reset regex state
+    nickRegex.lastIndex = 0;
+    isBotName = Boolean(nickRegex.exec(url));
+    
     // Proxy connection
     if (url === "~proxy") {
         // Proxy mode is allowed
@@ -393,7 +399,7 @@ function connClass (client) {
     }
     
     // Intercede via given bot name
-    else if (nickRegex.exec(url)) {
+    else if (isBotName === true) {
         // given bot is known
         if (Object.keys(bots).indexOf(url) !== -1) {
             connBot(client, url);
