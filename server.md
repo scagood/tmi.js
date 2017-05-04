@@ -27,24 +27,32 @@ Example 'relay.json' with comments
     "log": false,
     "_comment_log": "Will the program write all messages to console",
     "_comment_log_default": false,
+    
     "proxy": false,
     "_comment_proxy": "Can people get a direct proxy via ws:/site.site/~proxy",
     "_comment_proxy_default": false,
+    
     "relay": false,
     "_comment_relay": "Can people get a readonly relay via ws:/site.site/~relay",
     "_comment_relay_default": false,
+    
     "host": "scagood.co.uk",
     "_comment_host": "The host to report as",
+    
     "port": 80,
     "_comment_port": "Port to listen on",
     "_comment_port_default": 80,
+    
     "bots": {
         "_default": "scabot",
         "_comment__default": "The first bot in the 'bots' array if it's an object it's treated as a bot",
+        
         "scabot": {
             "name": "<- your bot's name ->",
+            
             "host": "<- your bot's host name ->",
             "_comment_host": "Defaults to (bots.bot.name + '.bot.' + host)",
+            
             "auth": "<- Your bot's oauth token ->",
 
             "cmds": [
@@ -63,6 +71,7 @@ Example 'relay.json' with comments
                 "'true' means anyone can use it",
                 "an array means the given users can use the bot's name"
             ],
+            
             "_comment_users_default": [],
         }
     },
