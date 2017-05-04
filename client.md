@@ -8,6 +8,10 @@ In order to use this you have to:
  <script src="/path/to/tmi.js"></script>
 ```
 3. Create your magical js
+4. ???
+5. Profit
+
+(Sorry, I had to)
 
 ## Options
 ```javascript
@@ -24,12 +28,12 @@ Auto rejoin is currently not working
 ```javascript
 var irc = new twitchIRC(username, oauth, options);
 irc.on("event", callback);      // Event callback function
-irc.close() = ()
-irc.join("channel");             // Join "channel"
-irc.part("channel");             // Leave "channel"
-irc.send("channel", "message");  // Send "message" to "channel"
-irc.sendRaw("message");          // Send "message" directly to twitch
-irc.whisper("user", "message");  // Whisper "message" to "user"
+irc.close();                    // Close all the things
+irc.join("channel");            // Join "channel"
+irc.part("channel");            // Leave "channel"
+irc.send("channel", "message"); // Send "message" to "channel"
+irc.sendRaw("message");         // Send "message" directly to twitch
+irc.whisper("user", "message"); // Whisper "message" to "user"
 ```
 
 ## Variables
