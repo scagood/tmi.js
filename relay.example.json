@@ -1,14 +1,19 @@
 {
     "log": false,
     "_comment_log": "Will the program write all messages to console",
+    
     "proxy": false,
     "_comment_proxy": "Can people get a direct proxy via ws:/site.site/~proxy",
+    
     "relay": false,
     "_comment_relay": "Can people get a readonly relay via ws:/site.site/~relay",
+    
     "host": "scagood.co.uk",
     "_comment_host": "The host to report as",
+    
     "port": 8004,
     "_comment_port": "Port to listen on",
+    
     "bots": {
         "scabot": {
             "name": "<- your bot's name ->",
