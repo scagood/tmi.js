@@ -358,23 +358,9 @@ function connRaw(client) {
         client.close();
     });
 }
-<<<<<<< HEAD
 function connClass(client) {
     const url = client.upgradeReq.url.slice(1);
     if (url === '~proxy') {
-=======
-function connClass (client) {
-    var url = client.upgradeReq.url.slice(1);
-    var isBotName;
-    
-    // Reset regex state
-    nickRegex.lastIndex = 0;
-    isBotName = Boolean(nickRegex.exec(url));
-    
-    // Proxy connection
-    if (url === "~proxy") {
-        // Proxy mode is allowed
->>>>>>> origin/master
         if (proxy === true) {
             // Proxy mode is enabled
             connRaw(client, twitchURL);
@@ -394,7 +380,6 @@ function connClass (client) {
             client.send(':relay.' + mainHost + ' ERROR client :Raw relaying is disabled');
             client.close();
         }
-<<<<<<< HEAD
     } else if (url === '') {
         // Intercede via default bot
         connBot(client, '_default');
@@ -403,19 +388,6 @@ function connClass (client) {
 
         if (Object.keys(bots).indexOf(url) > -1) {
             // Given bot is known
-=======
-    }
-    
-    // Intercede via default bot
-    else if (url === "") {
-        connBot(client, "_default");
-    }
-    
-    // Intercede via given bot name
-    else if (isBotName === true) {
-        // given bot is known
-        if (Object.keys(bots).indexOf(url) !== -1) {
->>>>>>> origin/master
             connBot(client, url);
         } else {
             // Unknown bot
@@ -424,7 +396,7 @@ function connClass (client) {
             client.close();
         }
     } else {
-    // Unknown request
+        // Unknown request
         connectionLog('Unknown:', getAddress(client));
         client.send(':bots.' + mainHost + ' ERROR client :Unknown request: \'' + url + '\'');
         client.close();
