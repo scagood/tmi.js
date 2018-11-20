@@ -1,106 +1,107 @@
-var WebSocket = require('ws'),
-    request = require("request"),
-    options = require("./relay.json"),
-    clients = new WebSocket.Server({ port: options.port || 80 });
-    
-var twitchURL = 'ws://irc-ws.chat.twitch.tv:80/';
+const WebSocket = require('ws');
 
-var log = options.log || false;
-var proxy = options.proxy || false;
-var relay = options.relay || false;
-var mainHost = options.host || "unknown.host";
+const request = require('request');
 
-var bots = options.bots || {};
+const options = require('./relay.json');
 
-var _relay = {
-    name: "justinfan" + Math.floor(Math.random()*999999),
+const clients = new WebSocket.Server({port: options.port || 80});
+
+const twitchURL = 'ws://irc-ws.chat.twitch.tv:80/';
+
+const log = options.log || false;
+const proxy = options.proxy || false;
+const relay = options.relay || false;
+const mainHost = options.host || 'unknown.host';
+
+const bots = options.bots || {};
+
+const _relay = {
+    name: 'justinfan' + Math.floor(Math.random() * 999999),
     host: mainHost,
-    auth: "blah",
+    auth: 'blah',
     users: true
 };
 
 // 'bots' defaults
-if (typeof bots._default === "string" && typeof bots[bots._default] !== "undefined") {
+if (typeof bots._default === 'string' && typeof bots[bots._default] !== 'undefined') {
     bots._default = bots[bots._default];
 }
-if (typeof bots._default === "undefined") {
-    if (Object.keys(bots).length !== 0) {
-        bots._default = bots[Object.keys(bots)[0]];
-    } else {
+if (typeof bots._default === 'undefined') {
+    if (Object.keys(bots).length === 0) {
         bots._default = _relay;
+    } else {
+        bots._default = bots[Object.keys(bots)[0]];
     }
 }
 bots._relay = _relay;
 
-var jtvRegex = /^justinfan[0-9]{1,6}$/ig
-var nickRegex = /^[a-z0-9][a-z0-9_]*$/ig;
+const jtvRegex = /^justinfan\d{1,6}$/ig;
+const nickRegex = /^[a-z0-9]\w*$/ig;
 
 function rateLimit(limitCount, limitInterval, fn) {
-    var fifo = [];
+    const fifo = [];
 
-    // count starts at limit
+    // Count starts at limit
     // each call of `fn` decrements the count
     // it is incremented after limitInterval
-    var count = limitCount;
+    let count = limitCount;
 
-    function call_next(args) {
-        setTimeout(function() {
+    function next(args) {
+        setTimeout(() => {
             if (fifo.length > 0) {
-                call_next();
-            }
-            else {
-                count = count + 1;
+                next();
+            } else {
+                count += 1;
             }
         }, limitInterval);
 
-        var call_args = fifo.shift();
+        const call = fifo.shift();
 
-        // if there is no next item in the queue
+        // If there is no next item in the queue
         // and we were called with args, trigger function immediately
-        if (!call_args && args) {
+        if (!call && args) {
             fn.apply(args[0], args[1]);
             return;
         }
 
-        fn.apply(call_args[0], call_args[1]);
+        fn.apply(call[0], call[1]);
     }
 
-    return function rate_limited_function() {
-        var ctx = this;
-        var args = Array.prototype.slice.call(arguments);
+    return function (...args) {
+        const ctx = this;
         if (count <= 0) {
             fifo.push([ctx, args]);
             return;
         }
 
-        count = count - 1;
-        call_next([ctx, args]);
+        count -= 1;
+        next([ctx, args]);
     };
 }
-function connectionLog(type, vars) {
-    console.log.apply(null, arguments)
+function connectionLog(type, ...args) {
+    console.log(type, ...args);
 }
 function getAddress(client) {
-    var address = client.upgradeReq.headers["x-forwarded-for"];
-    
-    if (typeof address !== "undefined") {
-        address = address.split(",")[0];
+    let address = client.upgradeReq.headers['x-forwarded-for'];
+
+    if (typeof address !== 'undefined') {
+        address = address.split(',').shift();
     }
-    if (typeof address === "undefined") {
-        address = client.upgradeReq.headers["client-id"];
+    if (typeof address === 'undefined') {
+        address = client.upgradeReq.headers['client-id'];
     }
-    
-    if (typeof address === "undefined") {
+
+    if (typeof address === 'undefined') {
         address = client.upgradeReq.connection.remoteAddress;
     }
     return address;
 }
 function confirmUser(PASS, NICK, callback) {
     try {
-        request("https://api.twitch.tv/kraken/?oauth_token=" + PASS, function (error, response, body) {
+        request('https://api.twitch.tv/kraken/?oauth_token=' + PASS, (error, response, body) => {
             if (!error && response.statusCode === 200) {
-                var json = JSON.parse(body);
-                if (json.token.valid === true && json.token.user_name == NICK) {
+                const json = JSON.parse(body);
+                if (json.token.valid === true && json.token.user_name === NICK) {
                     callback(true);
                 } else {
                     callback(false);
@@ -109,308 +110,295 @@ function confirmUser(PASS, NICK, callback) {
                 callback(false);
             }
         });
-    } catch (err) {
+    } catch (error) {
         callback(false);
     }
 }
 function connBot(client, botNick) {
     // Connect to twitch
-    var twitch = new WebSocket(twitchURL);
-    var address = getAddress(client);
-    var pass = false;
-    var nick = false;
-    var count = 0;
-    var toWrite = [];
-    var through = false;
-    var connected = true;
-    
-    var bot = bots[botNick];
-    
-    var readonly = jtvRegex.exec(bot.name) !== null;
-    
+    const twitch = new WebSocket(twitchURL);
+    const address = getAddress(client);
+    let pass = false;
+    let nick = false;
+    let count = 0;
+    const toWrite = [];
+    let through = false;
+    let connected = true;
+
+    const bot = bots[botNick];
+
+    const readonly = jtvRegex.exec(bot.name) !== null;
+
     // Default bot options
-    bot.host = bot.host || (bot.name + ".bot." + mainHost);
+    bot.host = bot.host || (bot.name + '.bot.' + mainHost);
     bot.cmds = bot.cmds || [];
     bot.users = bot.users || [];
-    
-    
-    var twitchSend = rateLimit(20, 30 * 1000, msg => {
-        if (log) console.log("t->", msg);
+
+    const twitchSend = rateLimit(20, 30 * 1000, msg => {
+        if (log) {
+            console.log('t->', msg);
+        }
         try {
             twitch.send(msg);
-        } catch (err) {
-            console.log(err)
+        } catch (error) {
+            console.error(error);
         }
     });
-    
-    
+
     function toTwitch(raw) {
         twitchSend(raw);
     }
     function toClient(raw) {
         if (connected) {
-            if (log) console.log("c->", raw);
+            if (log) {
+                console.log('c->', raw);
+            }
             try {
                 client.send(raw);
-            } catch (err) {
-                console.log(err)
+            } catch (error) {
+                console.error(error);
             }
         }
     }
-    
+
     // Immediately send and RNICK command for 'Relay Nickname'
-    toClient(":" + bot.host + " BOTNICK " + bot.name);
-    
+    toClient(':' + bot.host + ' BOTNICK ' + bot.name);
+
+    const clientCommands = {};
+    clientCommands.PASS = message => {
+        pass = message.split(':')[1];
+    };
+    clientCommands.NICK = message => {
+        nick = message.split(' ')[1];
+        confirmUser(pass, nick, success => {
+            if (success === false) {
+                toClient(`:${bot.host} ERROR ${bot.name} :Please check your username, oauth and scopes`);
+                connectionLog('Bot - Fail:', nick, address);
+                client.close();
+                twitch.close();
+
+                return;
+            }
+
+            if (bot.users === true || bot.users.indexOf(nick) !== -1) {
+                connectionLog('Bot - Pass:', nick, address);
+
+                toTwitch('PASS ' + (bot.auth[5] === ':' ? bot.auth : ('oauth:' + bot.auth)));
+                toTwitch('NICK ' + bot.name);
+
+                through = true;
+
+                toWrite.forEach(toTwitch);
+                return;
+            }
+
+            connectionLog('Bot - Auth:', nick, address);
+            toClient(`:${bot.host} ERROR ${bot.name} :'${nick}' is not allowed to use '${bot.name}'`);
+            client.close();
+            twitch.close();
+        });
+    };
+    clientCommands.JOIN = message => {
+        const [command, target] = message.split(' ');
+        if (target !== '#' + nick) {
+            return toClient(`:${bot.host} ERROR ${bot.name} :You can only ${command} your own channel`);
+        }
+
+        (through ? toTwitch : toWrite.push)(message);
+    };
+    clientCommands.PART = clientCommands.JOIN;
+    clientCommands.PRIVMSG = message => {
+        if (readonly) {
+            return toClient(`:${bot.host} ERROR ${bot.name} :You're in read only mode`);
+        }
+
+        let [, target, command] = message.split(' ');
+        if (target !== '#' + nick) {
+            return toClient(`:${bot.host} ERROR ${bot.name} :You can only PRIVMSG your own channel`);
+        }
+
+        // If it's not a command
+        if (['.', '/'].includes(command[1]) === false) {
+            return (through ? toTwitch : toWrite.push)(message);
+        }
+
+        command = command.slice(2).toLowerCase();
+
+        // Help command
+        if (command === 'help') {
+            const commands = ['help', bot.cmds]
+                .map(cmd => `'/${cmd}'`)
+                .join(', ');
+
+            return toClient(`:${bot.host} ERROR ${bot.name} :Commands that ${bot.name} allows: ${commands}`);
+        }
+
+        // Allowed command
+        if (bot.cmds.includes(command)) {
+            return (through ? toTwitch : toWrite.push)(message);
+        }
+
+        // Unknown command
+        toClient(`:${bot.host} ERROR ${bot.name} :That command '/${command}' is not allowed!`);
+    };
+    clientCommands.CAP = message => (through ? toTwitch : toWrite.push)(message);
+    clientCommands.PING = clientCommands.CAP;
+    clientCommands.PONG = clientCommands.CAP;
+
     function serverIn(message) {
-        if (log) console.log("<-t", message);
-        
-        if (message.split(":")[1].split(" ")[1] !== "WHISPER") {
-            toClient(message)
+        if (log) {
+            console.log('<-t', message);
+        }
+
+        if (message.split(':')[1].split(' ')[1] !== 'WHISPER') {
+            toClient(message);
         }
     }
     function clientIn(message) {
-        if (log) console.log("<-c", message);
-        var e = message.split(" ");
+        if (log) {
+            console.log('<-c', message);
+        }
+        const [command] = message.split(' ');
         if (
-            (count === 0 && e[0] !== "PASS") || 
-            (count === 1 && e[0] !== "NICK") || 
-            (count > 1 && (pass === false || nick === false))
+            (count === 0 && command !== 'PASS') ||
+            (count === 1 && command !== 'NICK')
         ) {
-            toClient(":" + bot.host + " ERROR " + bot.name + " :Send PASS first then NICK second, nothing before!");
-            connectionLog("Bot - Order:", nick, pass, address);
+            toClient(':' + bot.host + ' ERROR ' + bot.name + ' :Send PASS first then NICK second, nothing before!');
+            connectionLog('Bot - Order:', nick, pass, address);
             client.close();
             twitch.close();
+        } else if (typeof clientCommands[command] === 'function') {
+            clientCommands[command](message);
         } else {
-            switch (e[0]) {
-                case "PASS":
-                    e = message.split(":");
-                    pass = e[1];
-                    break;
-                case "NICK":
-                    nick = e[1];
-                    confirmUser(pass, nick, function (i) {
-                        if (i === true) {
-                            if (bot.users === true || bot.users.indexOf(nick) !== -1) {
-                                connectionLog("Bot - Pass:", nick, pass, address)
-                                
-                                toTwitch("PASS " + (bot.auth[5] === ":" ? bot.auth : ("oauth:" + bot.auth)));
-                                toTwitch("NICK " + bot.name);
-                                
-                                through = true;
-                                
-                                for (var a in toWrite) {
-                                    toTwitch(toWrite[a]);
-                                }
-                            } else {
-                                connectionLog("Bot - Auth:", nick, pass, address);
-                                toClient(":" + bot.host + " ERROR " + bot.name + " :'" + nick + "' is not allowed to use " + bot.name);
-                                client.close();
-                                twitch.close();
-                            }
-                        } else {
-                            toClient(":" + bot.host + " ERROR " + bot.name + " :Please check your username, oauth and scopes");
-                            connectionLog("Bot - Fail:", nick, pass, address);
-                            client.close();
-                            twitch.close();
-                        }
-                    })
-                    break;
-                case "PART":
-                case "JOIN":
-                    if (e[1] != "#"+nick) {
-                        toClient(":" + bot.host + " ERROR " + bot.name + " :You can only " + e[0].toLowerCase() + " your own channel!");
-                    } else {
-                        if (through === false) {
-                            toWrite[toWrite.length] = message;
-                        } else {
-                            toTwitch(message);
-                        }
-                    }
-                    break;
-                case "PRIVMSG":
-                    if (readonly) {
-                        toClient(":" + bot.host + " ERROR " + bot.name + " :You're in read only mode!");
-                        break;
-                    }
-                
-                    if (e[1] != "#"+nick) {
-                        toClient(":" + bot.host + " ERROR " + bot.name + " :You can only message your own channel!");
-                    } else if (e[2][1] === "/" || e[2][1] === ".") {
-                        // Allowed command
-                        if (bot.cmds.indexOf(e[2].slice(2).toLowerCase()) !== -1) {
-                            if (through === false) {
-                                toWrite[toWrite.length] = message;
-                            } else {
-                                toTwitch(message);
-                            }
-                        }
-                        // Help command
-                        else if (e[2].slice(2).toLowerCase() === "help") {
-                            toClient(":" + bot.host + " NOTICE " + bot.name + " :Commands that " + bot.name + " allows: '/help', '/" + bot.cmds.join("' /'") + "'!");
-                        }
-                        // Unknown command
-                        else {
-                            toClient(":" + bot.host + " ERROR " + bot.name + " :That command '" + e[2].slice(1) + "' is not allowed!");
-                        }
-                    } else {
-                        if (through === false) {
-                            toWrite[toWrite.length] = message;
-                        } else {
-                            toTwitch(message);
-                        }
-                    }
-                    break;
-                case "PING":
-                case "PONG":
-                case "CAP":
-                    if (through === false) {
-                        toWrite[toWrite.length] = message;
-                    } else {
-                        toTwitch(message);
-                    }
-                    break;
-                default:
-                    toClient(":" + bot.host + " ERROR " + bot.name + " :" + bot.name + " doesn't know the command '" + e[0] + "'!");
-                    if (log) console.log("Unknown command: '" + e[0] + "'");
-                    break;
+            toClient(`:${bot.host} ERROR ${bot.name} :'${bot.name}' doesn't know the command '${command}'!`);
+            if (log) {
+                console.log(`Unknown command: '${command}'`);
             }
         }
-        
+
         count++;
     }
-    
+
     // Ingest messages and split into lines
     twitch.on('message', msgs => {
-        var a;
-        msgs = msgs.replace("\r", "").split("\n");
+        let a;
+        msgs = msgs.replace('\r', '').split('\n');
         for (a = 0; a < msgs.length; a++) {
-            if (msgs[a].trim() !== "")
+            if (msgs[a].trim() !== '') {
                 serverIn(msgs[a].trim());
+            }
         }
     });
     client.on('message', msgs => {
-        var a;
-        msgs = msgs.replace("\r", "").split("\n");
+        let a;
+        msgs = msgs.replace('\r', '').split('\n');
         for (a = 0; a < msgs.length; a++) {
-            if (msgs[a].trim() !== "")
+            if (msgs[a].trim() !== '') {
                 clientIn(msgs[a].trim());
+            }
         }
     });
-    
+
     // Close both sockets on one closing.
-    client.on("close", function () {
+    client.on('close', () => {
         twitch.close();
         connected = false;
     });
-    twitch.on("close", function () {
+    twitch.on('close', () => {
         client.close();
         connected = false;
     });
-    
 }
-function connRaw (client) {
-    var address = getAddress(client)
-    var upstream = new WebSocket(twitchURL)
-    var piped = false;
-    var blockage = [];
-    var upstreamSend = rateLimit(20, 30 * 1000, msg => {
+function connRaw(client) {
+    const address = getAddress(client);
+    const upstream = new WebSocket(twitchURL);
+    let piped = false;
+    const blockage = [];
+    const upstreamSend = rateLimit(20, 30 * 1000, msg => {
         upstream.send(msg);
     });
-    
+
     function pushUpstream(raw) {
         upstreamSend(raw);
     }
     function toServer(raw) {
         if (raw === true) {
             piped = true;
-            for (a = 0; a < blockage.length; a++) {
+            for (let a = 0; a < blockage.length; a++) {
                 pushUpstream(blockage[a]);
             }
-        } else if (!piped) {
-            blockage[blockage.length] = raw;
-        } else {
+        } else if (piped) {
             pushUpstream(raw);
+        } else {
+            blockage[blockage.length] = raw;
         }
     }
-    
-    upstream.on("open", () => {
-        connectionLog("Raw - Open:", address);
+
+    upstream.on('open', () => {
+        connectionLog('Raw - Open:', address);
         toServer(true);
         upstream.on('message', raw => {
             client.send(raw);
         });
     });
-    
-    upstream.on("error", (e) => {
-        connectionLog("Raw - Error:", address);
+
+    upstream.on('error', e => {
+        connectionLog('Raw - Error:', address);
         client.send(e.toString());
         client.close();
     });
-    
+
     client.on('message', toServer);
-    
+
     // Close both streams
-    client.on("close", () => {
+    client.on('close', () => {
         upstream.close();
     });
-    upstream.on("close", () => {
+    upstream.on('close', () => {
         client.close();
     });
 }
-function connClass (client) {
-    var url = client.upgradeReq.url.slice(1);
-    // Proxy connection
-    if (url === "~proxy") {
-        // Proxy mode is allowed
+function connClass(client) {
+    const url = client.upgradeReq.url.slice(1);
+    if (url === '~proxy') {
         if (proxy === true) {
+            // Proxy mode is enabled
             connRaw(client, twitchURL);
-        }
-        // Proxy mode is allowed
-        else {
-            connectionLog("Proxy - Fail:", getAddress(client))
-            client.send(":proxy." + mainHost + " ERROR client :Raw proxying is disabled");
+        } else {
+            // Proxy mode is disabled
+            connectionLog('Proxy - Fail:', getAddress(client));
+            client.send(':proxy.' + mainHost + ' ERROR client :Raw proxying is disabled');
             client.close();
         }
-    }
-    
-    // Relay connection
-    else if (url === "~relay") {
-        // Relay mode is allowed
+    } else if (url === '~relay') {
         if (relay === true) {
-            connBot(client, "_relay");
-        }
-        // Relay mode is allowed
-        else {
-            connectionLog("Relay - Fail:", getAddress(client))
-            client.send(":relay." + mainHost + " ERROR client :Raw relaying is disabled");
+            // Relay mode is enabled
+            connBot(client, '_relay');
+        } else {
+            // Relay mode is disabled
+            connectionLog('Relay - Fail:', getAddress(client));
+            client.send(':relay.' + mainHost + ' ERROR client :Raw relaying is disabled');
             client.close();
         }
-    }
-    
-    // Intercede via default bot
-    else if (url === "") {
-        connBot(client, "_default");
-    }
-    
-    // Intercede via given bot name
-    else if (nickRegex.exec(url)) {
-        // given bot is known
-        if (Object.keys(bots).indexOf(url) !== -1) {
+    } else if (url === '') {
+        // Intercede via default bot
+        connBot(client, '_default');
+    } else if (nickRegex.exec(url)) {
+        // Intercede via given bot name
+
+        if (Object.keys(bots).indexOf(url) > -1) {
+            // Given bot is known
             connBot(client, url);
-        }
-        
-        // Unknown bot
-        else {
-            connectionLog("Bot - Unknown:", getAddress(client))
-            client.send(":bots." + mainHost + " ERROR client :Unknown bot requested: '" + url + "'");
+        } else {
+            // Unknown bot
+            connectionLog('Bot - Unknown:', getAddress(client));
+            client.send(':bots.' + mainHost + ' ERROR client :Unknown bot requested: \'' + url + '\'');
             client.close();
         }
-    }
-    
+    } else {
     // Unknown request
-    else {
-        connectionLog("Unknown:", getAddress(client))
-        client.send(":bots." + mainHost + " ERROR client :Unknown request: '" + url + "'");
+        connectionLog('Unknown:', getAddress(client));
+        client.send(':bots.' + mainHost + ' ERROR client :Unknown request: \'' + url + '\'');
         client.close();
     }
 }
